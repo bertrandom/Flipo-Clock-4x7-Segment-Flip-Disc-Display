@@ -35,6 +35,8 @@
 #include <EEPROM.h>           // https://www.arduino.cc/en/Reference/EEPROM
 #include <Adafruit_Sensor.h>  // https://github.com/adafruit/Adafruit_Sensor
 #include <DHT.h>              // https://github.com/adafruit/DHT-sensor-library
+#include <EspMQTTClient.h>    // https://github.com/plapointe6/EspMQTTClient - Library must be patched with https://github.com/plapointe6/EspMQTTClient/pull/138
+#include <arduino_secrets.h>
 
 #define DHT_PIN A0            // Digital pin connected to the DHT sensor
 #define DHTTYPE DHT22         // Sensor type
@@ -172,6 +174,15 @@ static const uint16_t ee_temp_hum_fq_address = 9;  // Temperature and humidity d
 // Required for EEPROM.begin(eeprom_size) for Arduino Nano ESP32
 static const uint8_t eeprom_size = 10;
 
+EspMQTTClient client(
+  SECRET_WIFI_SSID,
+  SECRET_WIFI_PASSWORD,
+  SECRET_MQTT_HOSTNAME,
+  SECRET_MQTT_USER,
+  SECRET_MQTT_PASSWORD,
+  SECRET_MQTT_CLIENT_NAME,
+  SECRET_MQTT_PORT
+);
 
 /************************************************************************************************/
 // Interrupt from RTC
@@ -235,9 +246,11 @@ void setup()
 
   // his function allows you to display numbers and symbols
   // Flip.Matrix_7Seg(data1,data2,data3,data4); 
-  Flip.Matrix_7Seg(F,L,I,P);
+  Flip.Matrix_7Seg(B,E,R,T);
   delay(1500);
-  Flip.Matrix_7Seg(D,I,S,C);
+  Flip.Matrix_7Seg(I,R,I,S);
+  delay(1500);
+  Flip.Matrix_7Seg(R,O,R,O);
   delay(1500);
 
   // Link the button functions
@@ -289,7 +302,55 @@ void setup()
   if(hum_on_off != ON && hum_on_off != OFF) hum_on_off = OFF;              // Turn off humidity display
   if(temp_hum_fq != THFQ60 && temp_hum_fq != THFQ30) temp_hum_fq = THFQ60; // Set the temperature and humidity display frequency to 60 seconds
 
+  client.enableDebuggingMessages(); // Enable debugging messages sent to serial output
+
   DisplayTime();
+}
+
+// This function is called once everything is connected (Wifi and MQTT)
+// WARNING : YOU MUST IMPLEMENT IT IF YOU USE EspMQTTClient
+void onConnectionEstablished()
+{
+  client.subscribe("iot/flipdisc", [](const String & payload) {
+
+    String word = payload;
+    Serial.println("Displaying word: " + word);
+
+    Flip.Display_3x1(1,0,0,0); // Clear dots
+
+    for (int i = 0; i < word.length(); i++) {
+        char character = word[i];
+        int asciiValue = int(character);  // Get the ASCII value of the character
+
+        int flipValue = -1;
+
+        if (asciiValue >= 65 && asciiValue <= 90) {
+            // Convert A-Z
+            flipValue = asciiValue - 54;
+        } else if (asciiValue >= 97 && asciiValue <= 122) {
+            // Convert a-z
+            flipValue = asciiValue - 86;
+        } else if (asciiValue >= 48 && asciiValue <= 57) {
+            // Convert 0-9
+            flipValue = asciiValue - 48;
+        } else if (asciiValue == 32) {
+            // Convert space
+            flipValue = 10;
+        } else if (asciiValue == 45) {
+            // Convert -
+            flipValue = HLM;
+        }
+
+        if (flipValue >= 0 && i <= 3) {
+            Serial.print("Segment: ");
+            Serial.print(i+1);
+            Serial.print(", Flip Value: ");
+            Serial.println(flipValue);
+            Flip.Display_7Seg(i+1,flipValue);
+        }
+    }
+
+  });
 }
 
 /************************************************************************************************/
@@ -301,6 +362,7 @@ void loop(void)
   if(timeSettingsStatus == true) SettingTime();
   if(speedSettingsStatus == true) SettingSpeed();
   if(tempSettingsStatus == true) SettingTemp();
+  client.loop();
 }
 
 /************************************************************************************************/
