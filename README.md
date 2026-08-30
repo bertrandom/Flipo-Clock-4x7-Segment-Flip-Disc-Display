@@ -1,7 +1,5 @@
 ![Arduino](https://img.shields.io/badge/-Arduino-00979D?style=for-the-badge&logo=Arduino&logoColor=white)
 ## 7-Segment Flip-disc Clock & Thermometer & Hygrometer
-<a href="https://www.buymeacoffee.com/marcinsaj"><img src="https://github.com/marcinsaj/marcinsaj/blob/main/Buy-me-a-coffee.png" /></a> 
-</br>
 
 ### Troubleshooting
 > [!TIP]  
@@ -10,7 +8,7 @@
 
 ### Clock Power Supply
 > [!IMPORTANT]
-> The clock requires a good quality external 12V (minimum 1.5A) power supply, 5.5mm diameter plug, 2.1mm center pin positive +.
+> The clock requires a good quality external 12V (minimum 2A current) power supply, 5.5mm diameter plug, 2.1mm center pin positive +.
 ---
 
 ### Firmware Update
